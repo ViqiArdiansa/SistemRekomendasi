@@ -44,24 +44,39 @@ with st.sidebar:
     )
 
 @st.cache_data(show_spinner=False)
-def load_data(ratings_bytes, books_bytes):
+def _buf(data):
+    """Membungkus bytes menjadi file-like object baru pada setiap pembacaan."""
+    if isinstance(data, (bytes, bytearray)):
+        return io.BytesIO(data)
+    if hasattr(data, "getvalue"):          # UploadedFile Streamlit
+        return io.BytesIO(data.getvalue())
+    return data
+
+
+@st.cache_data(show_spinner=False)
+def load_data(ratings_bytes: bytes, books_bytes: bytes):
     ratings = pd.read_csv(
-        ratings_bytes, sep=";", encoding="latin-1",
-        dtype={"ISBN": str}, on_bad_lines="skip"
+        _buf(ratings_bytes), sep=";", encoding="latin-1",
+        dtype={"ISBN": str}, on_bad_lines="skip",
     )
     books = pd.read_csv(
-        books_bytes, sep=";", encoding="latin-1",
-        dtype={"ISBN": str}, on_bad_lines="skip"
+        _buf(books_bytes), sep=";", encoding="latin-1",
+        dtype={"ISBN": str}, on_bad_lines="skip",
     )
+
+    # Bersihkan nama kolom dari tanda kutip dan spasi.
+    ratings.columns = ratings.columns.astype(str).str.replace('"', "", regex=False).str.strip()
+    books.columns = books.columns.astype(str).str.replace('"', "", regex=False).str.strip()
 
     # Menangani file rating yang terbaca sebagai satu kolom.
     if len(ratings.columns) == 1:
         ratings = pd.read_csv(
-            ratings_bytes, encoding="latin-1",
-            dtype=str, on_bad_lines="skip"
+            _buf(ratings_bytes), encoding="latin-1",
+            dtype=str, on_bad_lines="skip",
         )
-        ratings = ratings.iloc[:, 0].str.split(";", expand=True)
-        ratings.columns = ["User-ID", "ISBN", "Book-Rating"]
+        ratings.columns = ratings.columns.astype(str).str.replace('"', "", regex=False).str.strip()
+
+    return ratings, books
 
     ratings.columns = ratings.columns.str.replace('"', '', regex=False).str.strip()
     books.columns = books.columns.str.replace('"', '', regex=False).str.strip()
