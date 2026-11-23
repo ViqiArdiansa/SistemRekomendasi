@@ -64,6 +64,16 @@ def load_data(ratings_bytes: bytes, books_bytes: bytes):
         _buf(books_bytes), sep=";", encoding="latin-1",
         dtype={"ISBN": str}, on_bad_lines="skip",
     )
+    if ratings_file is None or books_file is None:
+    st.info("Silakan upload BX-Book-Ratings.csv dan BX-Books.csv pada sidebar.")
+    st.stop()
+
+try:
+    ratings, books = load_data(ratings_file.getvalue(), books_file.getvalue())
+except Exception as e:
+    st.error(f"Terjadi kesalahan saat memproses dataset: {e}")
+    st.exception(e)   # menampilkan nomor baris penyebab error
+    st.stop()
 
     # Bersihkan nama kolom dari tanda kutip dan spasi.
     ratings.columns = ratings.columns.astype(str).str.replace('"', "", regex=False).str.strip()
